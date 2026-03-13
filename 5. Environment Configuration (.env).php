@@ -1,35 +1,27 @@
 <?php
-// Load .env file
-$envPath = __DIR__ . '/.env';
-if (!file_exists($envPath)) {
-    die("Error: .env file not found");
-}
+// load config
+$config = require 'config.php';
 
-$lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-foreach ($lines as $line) {
-    // Skip comments
-    if (str_starts_with(trim($line), '#')) {
-        continue;
+// Access values
+$dbHost = $config['db_host'];
+$dbName = $config['db_name'];
+$dbUser = $config['db_user'];
+$dbPass = $config['db_pass'];
+$appEnv = $config['app_env'];
+
+// Example: connect to database securely
+try {
+    $pdo = new PDO(
+        "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4",
+        $dbUser,
+        $dbPass
+    );
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    if ($appEnv === 'development') {
+        echo "DB Connection Error: " . $e->getMessage();
+    } else {
+        echo "DB Connection Error. Please try later.";
     }
-    // Split into key and value
-    [$key, $value] = explode('=', $line, 2);
-    $key = trim($key);
-    $value = trim($value);
-    // Remove quotes if present
-    $value = trim($value, '"');
-    $value = trim($value, "'");
-    // Set environment variable
-    putenv("$key=$value");
-    $_ENV[$key] = $value;
+    exit;
 }
-
-// Access variables
-$dbHost = $_ENV['DB_HOST'] ?? getenv('DB_HOST');
-$dbName = $_ENV['DB_NAME'] ?? getenv('DB_NAME');
-$appEnv = $_ENV['APP_ENV'] ?? getenv('APP_ENV');
-
-// Example output
-echo "DB Host: $dbHost<br>";
-echo "DB Name: $dbName<br>";
-echo "App Environment: $appEnv";
-?>
